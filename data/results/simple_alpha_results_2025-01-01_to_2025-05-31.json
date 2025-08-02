@@ -1,0 +1,564 @@
+{
+  "strategy_name": "Research_simple_alpha",
+  "symbols": [
+    "RELIANCE.NS"
+  ],
+  "start_date": "2025-01-01",
+  "end_date": "2025-05-31",
+  "initial_capital": 100000,
+  "final_capital": 100000,
+  "total_return": 0,
+  "sharpe_ratio": 0,
+  "max_drawdown": 0,
+  "trades": [],
+  "equity_curve": [
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    },
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    }
+  ],
+  "performance": {
+    "returns": {
+      "total_return_pct": 0.0,
+      "annual_return_pct": 0.0,
+      "daily_return_mean": 0.0,
+      "daily_return_std": 0.0
+    },
+    "risk": {
+      "volatility": 0.0,
+      "var_95": 0.0,
+      "cvar_95": 0.0,
+      "max_drawdown": 0.0,
+      "drawdown_start": "2025-01-01",
+      "drawdown_end": "2025-01-01",
+      "skewness": 0,
+      "kurtosis": 0,
+      "positive_skew": 0,
+      "negative_skew": 0
+    },
+    "ratios": {
+      "sharpe_ratio": 0.0,
+      "sortino_ratio": 0.0,
+      "calmar_ratio": 0.0,
+      "recovery_factor": 0.0
+    },
+    "trades": {
+      "total_trades": 0,
+      "win_rate_pct": 0.0,
+      "profit_factor": 0.0,
+      "avg_trade": 0.0,
+      "avg_win": 0.0,
+      "avg_loss": 0.0,
+      "largest_win": 0.0,
+      "largest_loss": 0.0
+    },
+    "summary": {
+      "total_pnl": 0,
+      "best_month": 0.0,
+      "worst_month": 0.0,
+      "consecutive_wins": 0,
+      "consecutive_losses": 0
+    }
+  }
+}

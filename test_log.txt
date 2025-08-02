@@ -1,0 +1,82 @@
+2025-07-27 16:57:05 | INFO     | utils.logger:setup_logger:59 - Logging system initialized
+TRADING SYSTEM TEST SUITE
+================================================================================
+
+==================================================
+TESTING DATA HANDLER
+==================================================
+2025-07-27 16:57:05 | WARNING  | core.data_handler:_initialize_kite:41 - Zerodha API credentials not found in environment variables
+Market Status: {'status': 'disconnected', 'message': 'Kite connection not initialized'}
+Nifty 50 stocks: 49 symbols
+First 5 symbols: ['ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT', 'AXISBANK']
+Sample data shape: (100, 21)
+Indicators added: ['sma_20', 'sma_50', 'sma_200', 'ema_12', 'ema_26', 'macd', 'macd_signal', 'macd_histogram', 'rsi', 'bb_middle', 'bb_upper', 'bb_lower', 'volume_sma', 'volume_ratio', 'daily_return', 'volatility']
+Data Handler: PASSED
+
+==================================================
+TESTING STRATEGIES
+==================================================
+2025-07-27 16:57:05 | INFO     | core.strategy:__init__:34 - Initialized strategy: Test_ORB
+2025-07-27 16:57:05 | INFO     | strategies.orb:__init__:49 - Initialized ORB strategy: Test_ORB
+ORB Strategy signals generated: 0 signals
+2025-07-27 16:57:05 | INFO     | core.strategy:__init__:34 - Initialized strategy: Test_Momentum
+2025-07-27 16:57:05 | INFO     | strategies.momentum:__init__:51 - Initialized momentum strategy: Test_Momentum
+Momentum Strategy signals generated: 0 signals
+Strategies: PASSED
+
+==================================================
+TESTING PORTFOLIO
+==================================================
+2025-07-27 16:57:05 | INFO     | core.portfolio:__init__:49 - Initialized portfolio with capital: ₹100,000.00
+2025-07-27 16:57:05 | WARNING  | core.portfolio:_execute_buy_order:118 - Insufficient capital for buy order: RELIANCE
+2025-07-27 16:57:05 | INFO     | core.portfolio:place_order:105 - Executed buy order: RELIANCE 100 @ ₹2500.00
+Order placed: {'timestamp': datetime.datetime(2025, 7, 27, 16, 57, 5, 872948), 'symbol': 'RELIANCE', 'direction': 'buy', 'quantity': 100, 'price': 2500.0, 'effective_price': 2502.4999999999995, 'transaction_value': 250000.0, 'brokerage': 125.0, 'slippage_cost': 250.0, 'total_cost': 625.0, 'order_type': 'MARKET'}
+Portfolio capital after order: ₹100,000.00
+Position summary: {'total_positions': 0, 'positions': {}, 'total_exposure': 0.0}
+Performance summary: {'initial_capital': 100000, 'current_capital': 100000, 'total_pnl': 0.0, 'realized_pnl': 0.0, 'unrealized_pnl': 0.0, 'total_return_pct': 0.0, 'total_trades': 0, 'winning_trades': 0, 'losing_trades': 0, 'win_rate': 0, 'sharpe_ratio': 0}
+Portfolio: PASSED
+
+==================================================
+TESTING BROKER
+==================================================
+2025-07-27 16:57:05 | INFO     | core.broker:__init__:64 - Initialized paper broker with capital: ₹100,000.00
+2025-07-27 16:57:05 | INFO     | core.broker:place_order:140 - Paper order executed: TCS buy 50 @ ₹3500.00
+Paper broker order: {'order_id': 'PAPER_1', 'symbol': 'TCS', 'direction': 'buy', 'quantity': 50, 'price': 3500.0, 'execution_price': 3500.0, 'order_type': 'MARKET', 'status': 'REJECTED', 'timestamp': datetime.datetime(2025, 7, 27, 16, 57, 5, 874879), 'filled_quantity': 50, 'pending_quantity': 0, 'rejection_reason': 'Insufficient capital'}
+Paper broker positions: {'net': {}, 'day': {}}
+Broker: PASSED
+
+==================================================
+TESTING CLOCK
+==================================================
+2025-07-27 16:57:05 | INFO     | core.clock:__init__:43 - Initialized live clock with speed 1.0x
+Current time: 2025-07-27 16:57:05.875362
+Market status: weekend
+Is market open: False
+2025-07-27 16:57:05 | INFO     | core.clock:__init__:43 - Initialized backtest clock with speed 1.0x
+Backtest start: 2023-01-01 00:00:00
+Backtest end: 2023-12-31 00:00:00
+Is finished: False
+Clock: PASSED
+
+==================================================
+TESTING PERFORMANCE METRICS
+==================================================
+Sharpe Ratio: -0.04
+Max Drawdown: -23.66%
+Drawdown period: 2023-03-07 00:00:00 to 2023-05-16 00:00:00
+Win Rate: 50.0%
+Profit Factor: 3.75
+Performance Metrics: PASSED
+
+================================================================================
+TEST SUMMARY
+================================================================================
+Data Handler: ✓ PASSED
+Strategies: ✓ PASSED
+Portfolio: ✓ PASSED
+Broker: ✓ PASSED
+Clock: ✓ PASSED
+Performance Metrics: ✓ PASSED
+
+Overall: 6/6 tests passed
+🎉 All tests passed! The trading system is ready to use.

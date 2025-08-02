@@ -1,0 +1,41 @@
+2025-07-27 20:21:37 | INFO     | utils.logger:setup_logger:59 - Logging system initialized
+2025-07-27 20:21:37 | INFO     | token_manager:__init__:37 - Access token loaded from environment
+2025-07-27 20:21:37 | INFO     | __main__:_load_config:40 - Loaded configuration from config/config.yaml
+2025-07-27 20:21:37 | INFO     | backtest.backtester:__init__:45 - Initialized backtester
+🚀 Running Comprehensive Backtest
+📊 Strategy: volatility_breakout
+🎯 Symbols: ['RELIANCE.NS']
+📅 Period: 2025-01-01 to 2025-05-12
+💰 Capital: ₹100,000
+============================================================
+2025-07-27 20:21:37 | INFO     | core.strategy:__init__:34 - Initialized strategy: Research_volatility_breakout
+2025-07-27 20:21:37 | INFO     | strategies.volatility_breakout:__init__:38 - Initialized Volatility Breakout strategy: Research_volatility_breakout
+2025-07-27 20:21:37 | INFO     | strategies.volatility_breakout:__init__:39 - Parameters: volatility_period=20, volatility_multiplier=0.1, momentum_period=5
+✅ Strategy initialized: Research_volatility_breakout
+🔍 Running backtest...
+2025-07-27 20:21:37 | INFO     | backtest.backtester:run_backtest:62 - Starting backtest for Research_volatility_breakout
+2025-07-27 20:21:37 | INFO     | backtest.backtester:run_backtest:63 - Symbols: ['RELIANCE.NS']
+2025-07-27 20:21:37 | INFO     | backtest.backtester:run_backtest:64 - Period: 2025-01-01 to 2025-05-12
+2025-07-27 20:21:37 | INFO     | backtest.backtester:run_backtest:65 - Initial Capital: ₹100,000.00
+2025-07-27 20:21:37 | INFO     | core.portfolio:__init__:49 - Initialized portfolio with capital: ₹100,000.00
+2025-07-27 20:21:37 | INFO     | core.broker:__init__:64 - Initialized paper broker with capital: ₹100,000.00
+2025-07-27 20:21:37 | INFO     | core.clock:__init__:43 - Initialized backtest clock with speed 1.0x
+2025-07-27 20:21:59 | INFO     | core.data_handler:fetch_single_symbol_data:153 - Fetched 33000 records for RELIANCE.NS (minute interval)
+2025-07-27 20:21:59 | INFO     | core.data_handler:fetch_data:200 - Cached data for 1 symbols
+2025-07-27 20:21:59 | ERROR    | core.data_handler:calculate_technical_indicators:436 - Error calculating technical indicators: 'Series' object has no attribute 'columns'
+2025-07-27 20:21:59 | WARNING  | backtest.backtester:_load_data:151 - Could not calculate technical indicators for open: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | ERROR    | core.data_handler:calculate_technical_indicators:436 - Error calculating technical indicators: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | WARNING  | backtest.backtester:_load_data:151 - Could not calculate technical indicators for high: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | ERROR    | core.data_handler:calculate_technical_indicators:436 - Error calculating technical indicators: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | WARNING  | backtest.backtester:_load_data:151 - Could not calculate technical indicators for low: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | ERROR    | core.data_handler:calculate_technical_indicators:436 - Error calculating technical indicators: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | WARNING  | backtest.backtester:_load_data:151 - Could not calculate technical indicators for close: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | ERROR    | core.data_handler:calculate_technical_indicators:436 - Error calculating technical indicators: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | WARNING  | backtest.backtester:_load_data:151 - Could not calculate technical indicators for volume: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | ERROR    | backtest.backtester:_load_data:173 - Error sorting data by index: Unknown datetime string format, unable to parse: symbol, at position 33000
+2025-07-27 20:22:00 | ERROR    | backtest.backtester:_load_data:186 - Error fixing index: 'Series' object has no attribute 'columns'
+2025-07-27 20:22:00 | ERROR    | backtest.backtester:_load_data:193 - Error loading data: Failed to process data index: Unknown datetime string format, unable to parse: symbol, at position 33000
+2025-07-27 20:22:00 | ERROR    | __main__:run_comprehensive_backtest:107 - Error in comprehensive backtest: Failed to load data for symbols ['RELIANCE.NS']: Failed to process data index: Unknown datetime string format, unable to parse: symbol, at position 33000
+❌ Error: Failed to load data for symbols ['RELIANCE.NS']: Failed to process data index: Unknown datetime string format, unable to parse: symbol, at position 33000
+
+❌ Research backtest failed!

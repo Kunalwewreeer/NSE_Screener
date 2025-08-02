@@ -1,0 +1,25 @@
+{
+  "strategy_name": "Research_simple_alpha",
+  "symbols": [
+    "RELIANCE.NS"
+  ],
+  "start_date": "2025-01-03",
+  "end_date": "2025-01-05",
+  "initial_capital": 100000,
+  "final_capital": 100000,
+  "total_return": 0,
+  "sharpe_ratio": 0,
+  "max_drawdown": 0,
+  "trades": [],
+  "equity_curve": [
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    }
+  ],
+  "performance": {},
+  "data": {
+    "RELIANCE.NS": "                             open     high  ...  daily_return  volatility\ndate                                        ...                          \n2025-01-03 00:00:00+05:30  1243.9  1262.05  ...           NaN         NaN\n\n[1 rows x 22 columns]"
+  }
+}

@@ -1,0 +1,64 @@
+# Trading System Configuration
+
+# API Configuration
+api:
+  provider: "zerodha"
+  base_url: "https://api.kite.trade"
+  timeout: 30
+  max_retries: 3
+
+# Data Configuration
+data:
+  cache_dir: "data/cache"
+  results_dir: "data/results"
+  cache_expiry_hours: 24
+  timeframe: "day"
+  default_timeframe: "day"
+  supported_intervals: ["minute", "5minute", "15minute", "30minute", "60minute", "day"]
+  chunk_days:
+    minute: 1
+    "5minute": 3
+    "15minute": 7
+    "30minute": 14
+    "60minute": 30
+    day: 365
+
+# Trading Configuration
+trading:
+  default_capital: 100000
+  max_position_size: 0.1  # 10% of capital
+  default_stop_loss: 0.02  # 2%
+  default_take_profit: 0.04  # 4%
+  max_open_positions: 5
+  commission_rate: 0.0005  # 0.05%
+
+# Backtesting Configuration
+backtesting:
+  default_start_date: "2024-01-01"
+  default_end_date: "2024-01-07"
+  enable_plots: true
+  save_results: true
+  results_format: "json"
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  file: "logs/trading_system.log"
+  max_file_size: "10MB"
+  backup_count: 5
+
+# Risk Management
+risk:
+  max_daily_loss: 0.05  # 5% of capital
+  max_drawdown: 0.20  # 20% of capital
+  position_sizing_method: "fixed"  # fixed, kelly, volatility
+  correlation_threshold: 0.7
+
+# Performance Metrics
+performance:
+  benchmark: "NIFTY50"
+  risk_free_rate: 0.06  # 6% annual
+  calculate_sharpe: true
+  calculate_sortino: true
+  calculate_max_drawdown: true
+  calculate_win_rate: true 

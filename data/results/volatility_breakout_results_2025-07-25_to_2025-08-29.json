@@ -1,0 +1,22 @@
+{
+  "strategy_name": "Research_volatility_breakout",
+  "symbols": [
+    "RELIANCE.NS"
+  ],
+  "start_date": "2025-07-25",
+  "end_date": "2025-08-29",
+  "initial_capital": 100000,
+  "final_capital": 100000,
+  "total_return": 0,
+  "sharpe_ratio": 0,
+  "max_drawdown": 0,
+  "trades": [],
+  "equity_curve": [
+    {
+      "portfolio_value": 100000,
+      "cash": 100000,
+      "unrealized_pnl": 0.0
+    }
+  ],
+  "performance": {}
+}

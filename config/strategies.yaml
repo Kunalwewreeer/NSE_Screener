@@ -1,0 +1,96 @@
+# Strategy Configurations
+
+# Simple Alpha Strategy (Moving Average Crossover)
+simple_alpha:
+  enabled: true
+  description: "Moving average crossover with volume confirmation"
+  parameters:
+    fast_ma: 2
+    slow_ma: 5
+    volume_threshold: 0.1
+    stop_loss_pct: 0.02
+    take_profit_pct: 0.01
+    min_price_change: 0.0001
+  timeframes: ["minute", "5minute", "15minute", "day"]
+  symbols: ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS"]
+
+# Volatility Breakout Strategy
+volatility_breakout:
+  enabled: true
+  description: "Volatility breakout strategy for 1-minute data"
+  parameters:
+    volatility_period: 5
+    volatility_multiplier: 0.8
+    momentum_period: 2
+    volume_threshold: 0.1
+    stop_loss_pct: 0.01
+    take_profit_pct: 0.02
+    min_volatility: 0.0001
+    max_volatility: 0.2
+  timeframes: ["minute"]
+  symbols: ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS"]
+
+# Opening Range Breakout Strategy
+orb:
+  enabled: true
+  description: "Opening range breakout strategy"
+  parameters:
+    lookback_period: 15
+    breakout_threshold: 0.002
+    volume_threshold: 1
+    stop_loss_pct: 0.01
+    take_profit_pct: 0.01
+    min_range_pct: 0.003
+  timeframes: ["minute", "5minute", "15minute"]
+  symbols: [ 'RELIANCE.NS', 'TCS.NS', 'HDFCBANK.NS', 'INFY.NS', 'ICICIBANK.NS',
+            'HDFC.NS', 'SBIN.NS', 'BHARTIARTL.NS', 'ITC.NS', 'ASIANPAINT.NS',
+            'LT.NS', 'AXISBANK.NS', 'KOTAKBANK.NS', 'MARUTI.NS', 'NTPC.NS',
+            'SUNPHARMA.NS', 'ULTRACEMCO.NS', 'ONGC.NS', 'POWERGRID.NS', 'BAJFINANCE.NS',
+            'NESTLEIND.NS', 'HCLTECH.NS', 'WIPRO.NS', 'COALINDIA.NS', 'TATAMOTORS.NS',
+            'GRASIM.NS', 'HINDALCO.NS', 'ADANIPORTS.NS', 'TATASTEEL.NS', 'TITAN.NS',
+            'JSWSTEEL.NS', 'INDUSINDBK.NS', 'TECHM.NS', 'BAJAJFINSV.NS', 'DRREDDY.NS',
+            'EICHERMOT.NS', 'CIPLA.NS', 'BRITANNIA.NS', 'DIVISLAB.NS', 'HEROMOTOCO.NS',
+            'UPL.NS', 'APOLLOHOSP.NS', 'BAJAJ-AUTO.NS', 'SHREECEM.NS', 'HINDALCO.NS',
+            'TATACONSUM.NS', 'ADANIENT.NS', 'BPCL.NS', 'HDFCLIFE.NS', 'SBILIFE.NS']
+
+# Momentum Strategy
+momentum:
+  enabled: true
+  description: "Momentum-based trading strategy"
+  parameters:
+    lookback_period: 20
+    momentum_threshold: 0.02
+    volume_threshold: 1.5
+    stop_loss_pct: 0.02
+    take_profit_pct: 0.04
+    rsi_period: 14
+    rsi_overbought: 70
+    rsi_oversold: 30
+  timeframes: ["day", "5minute", "15minute"]
+  symbols: ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS"]
+
+# Test Strategy
+test:
+  enabled: true
+  description: "Test strategy for debugging signal generation"
+  parameters:
+    signal_frequency: 1.0  # 100% of data points
+  timeframes: ["minute", "5minute", "day"]
+  symbols: ["RELIANCE.NS", "TCS.NS", "HDFCBANK.NS", "INFY.NS", "ICICIBANK.NS"]
+
+# Strategy Optimization Parameters
+optimization:
+  enabled: true
+  method: "grid_search"  # grid_search, bayesian, genetic
+  cv_folds: 5
+  test_size: 0.2
+  metrics: ["sharpe_ratio", "max_drawdown", "win_rate"]
+  parameter_ranges:
+    simple_alpha:
+      fast_ma: [3, 5, 8, 10]
+      slow_ma: [15, 20, 25, 30]
+      volume_threshold: [1.2, 1.5, 2.0, 2.5]
+    volatility_breakout:
+      volatility_period: [15, 20, 25, 30]
+      volatility_multiplier: [1.5, 2.0, 2.5, 3.0]
+      momentum_period: [3, 5, 8, 10] 
