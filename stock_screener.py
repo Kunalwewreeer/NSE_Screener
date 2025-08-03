@@ -119,9 +119,39 @@ class StockScreener:
             data['above_vwap'] = data['close'] > data['vwap']
             data['vwap_distance'] = ((data['close'] - data['vwap']) / data['vwap']) * 100
             
+            # Recent volume ratio calculation (for strategy filter)
+            # Calculate recent volume activity compared to average volume per period
+            # This gives us a ratio where >1 means recent volume is higher than average
+            
+            # Calculate average volume per period up to current point
+            data['avg_volume_per_period'] = data['volume'].expanding().mean()
+            
+            # Calculate recent volume averages for different windows
+            data['recent_avg_volume_5'] = data['volume'].rolling(5).mean()
+            data['recent_avg_volume_10'] = data['volume'].rolling(10).mean()
+            data['recent_avg_volume_15'] = data['volume'].rolling(15).mean()
+            data['recent_avg_volume_20'] = data['volume'].rolling(20).mean()
+            data['recent_avg_volume_30'] = data['volume'].rolling(30).mean()
+            
+            # Calculate ratios: recent_avg / overall_avg (>1 = more active, <1 = less active)
+            data['recent_volume_ratio_5'] = data['recent_avg_volume_5'] / data['avg_volume_per_period']
+            data['recent_volume_ratio_10'] = data['recent_avg_volume_10'] / data['avg_volume_per_period']
+            data['recent_volume_ratio_15'] = data['recent_avg_volume_15'] / data['avg_volume_per_period']
+            data['recent_volume_ratio_20'] = data['recent_avg_volume_20'] / data['avg_volume_per_period']
+            data['recent_volume_ratio_30'] = data['recent_avg_volume_30'] / data['avg_volume_per_period']
+            
             # Momentum indicators
             data['momentum_10'] = ((data['close'] - data['close'].shift(10)) / data['close'].shift(10)) * 100
             data['momentum_20'] = ((data['close'] - data['close'].shift(20)) / data['close'].shift(20)) * 100
+            
+            # Recent minute-level returns for ranking (very short-term momentum)
+            data['return_1min'] = ((data['close'] - data['close'].shift(1)) / data['close'].shift(1)) * 100
+            data['return_2min'] = ((data['close'] - data['close'].shift(2)) / data['close'].shift(2)) * 100
+            data['return_3min'] = ((data['close'] - data['close'].shift(3)) / data['close'].shift(3)) * 100
+            data['return_5min'] = ((data['close'] - data['close'].shift(5)) / data['close'].shift(5)) * 100
+            data['return_10min'] = ((data['close'] - data['close'].shift(10)) / data['close'].shift(10)) * 100
+            data['return_15min'] = ((data['close'] - data['close'].shift(15)) / data['close'].shift(15)) * 100
+            data['return_30min'] = ((data['close'] - data['close'].shift(30)) / data['close'].shift(30)) * 100
             
             # Breakout signals
             data['near_high'] = (data['close'] / data['high_of_day']) > 0.95
@@ -282,6 +312,20 @@ class StockScreener:
                 'cutoff_signal_direction': latest_cutoff.get('signal_direction', 'NEUTRAL'),
                 'cutoff_above_vwap': latest_cutoff.get('above_vwap', False),
                 'cutoff_ma_alignment': latest_cutoff.get('ma_alignment', 0),
+                # Recent volume ratios for strategy filter
+                'recent_volume_ratio_5': latest_cutoff.get('recent_volume_ratio_5', 1.0),
+                'recent_volume_ratio_10': latest_cutoff.get('recent_volume_ratio_10', 1.0),
+                'recent_volume_ratio_15': latest_cutoff.get('recent_volume_ratio_15', 1.0),
+                'recent_volume_ratio_20': latest_cutoff.get('recent_volume_ratio_20', 1.0),
+                'recent_volume_ratio_30': latest_cutoff.get('recent_volume_ratio_30', 1.0),
+                # Recent minute-level returns for ranking
+                'return_1min': latest_cutoff.get('return_1min', 0.0),
+                'return_2min': latest_cutoff.get('return_2min', 0.0),
+                'return_3min': latest_cutoff.get('return_3min', 0.0),
+                'return_5min': latest_cutoff.get('return_5min', 0.0),
+                'return_10min': latest_cutoff.get('return_10min', 0.0),
+                'return_15min': latest_cutoff.get('return_15min', 0.0),
+                'return_30min': latest_cutoff.get('return_30min', 0.0),
             }
             
             # Calculate screening metrics - END OF DAY
@@ -400,6 +444,18 @@ class StockScreener:
         # Convert to DataFrame
         df = pd.DataFrame(results)
         
+        # Map cutoff metrics to main screening columns for filtering
+        df['pct_change_from_open'] = df['cutoff_pct_change']
+        df['bullish_score'] = df['cutoff_bullish_score']
+        df['bearish_score'] = df['cutoff_bearish_score']
+        df['interest_score'] = df['cutoff_interest_score']
+        df['volume_ratio'] = df['cutoff_volume_ratio']
+        df['range_pct'] = df['cutoff_range_pct']
+        df['vwap_distance'] = df['cutoff_vwap_distance']
+        df['rsi'] = df['cutoff_rsi']
+        df['momentum_10'] = df['cutoff_momentum_10']
+        df['atr_pct'] = df.get('cutoff_atr_pct', 0)  # In case this doesn't exist
+        
         # Sort by multiple criteria (you can customize this)
         df = df.sort_values([
             'pct_change_from_open',
@@ -418,24 +474,44 @@ class StockScreener:
             'pct_change': 'pct_change_from_open',
             'volume_ratio': 'volume_ratio',
             'bullish_score': 'bullish_score',
+            'bearish_score': 'bearish_score',
+            'interest_score': 'interest_score',
             'range_pct': 'range_pct',
             'rsi_momentum': 'rsi',
             'vwap_distance': 'vwap_distance',
             'momentum_10': 'momentum_10',
-            'atr_pct': 'atr_pct'
+            'atr_pct': 'atr_pct',
+            # Recent minute-level returns for ranking
+            'return_1min': 'return_1min',
+            'return_2min': 'return_2min',
+            'return_3min': 'return_3min',
+            'return_5min': 'return_5min',
+            'return_10min': 'return_10min',
+            'return_15min': 'return_15min',
+            'return_30min': 'return_30min'
         }
         
         sort_column = criteria_mapping.get(criteria, 'pct_change_from_open')
         
         # Handle special cases
-        if criteria == 'rsi_momentum':
+        if criteria == 'pct_change':
+            # For percentage change, use absolute values to capture both bullish and bearish moves
+            screened_df_copy = screened_df.copy()
+            screened_df_copy['abs_pct_change'] = abs(screened_df_copy['pct_change_from_open'])
+            top_stocks = screened_df_copy.nlargest(top_k, 'abs_pct_change')
+        elif criteria == 'rsi_momentum':
             # For RSI, we want values between 50-80 (bullish momentum)
             filtered_df = screened_df[(screened_df['rsi'] >= 50) & (screened_df['rsi'] <= 80)]
             top_stocks = filtered_df.nlargest(top_k, 'rsi')
         elif criteria == 'vwap_distance':
-            # For VWAP distance, we want positive values (above VWAP)
-            filtered_df = screened_df[screened_df['vwap_distance'] > 0]
-            top_stocks = filtered_df.nlargest(top_k, 'vwap_distance')
+            # For VWAP distance, we want absolute values to capture both above and below VWAP
+            screened_df_copy = screened_df.copy()
+            screened_df_copy['abs_vwap_distance'] = abs(screened_df_copy['vwap_distance'])
+            top_stocks = screened_df_copy.nlargest(top_k, 'abs_vwap_distance')
+        elif criteria.startswith('return_'):
+            # For recent minute returns, rank by strongest positive momentum first, then strongest negative
+            # This prioritizes stocks moving up but also shows strong downward moves
+            top_stocks = screened_df.nlargest(top_k, sort_column)
         else:
             top_stocks = screened_df.nlargest(top_k, sort_column)
         
@@ -530,9 +606,11 @@ def create_screening_dashboard():
     # Screening criteria - adjust based on early morning mode
     if is_early_morning:
         screening_options = [
-            "pct_change", "volume_spike", "range_pct"
+            "pct_change", "volume_spike", "range_pct",
+            # Recent minute returns for early momentum
+            "return_1min", "return_2min", "return_3min", "return_5min"
         ]
-        help_text = "Early morning mode: Simple metrics only (% change, volume, range)"
+        help_text = "Early morning mode: Simple metrics + recent minute returns for momentum"
         default_idx = 0
     else:
         screening_options = [
@@ -540,9 +618,12 @@ def create_screening_dashboard():
             "pct_change", "volume_ratio", "bullish_score",
             "bearish_score",       # Bearish signals only
             "range_pct", "rsi_momentum", "vwap_distance", 
-            "momentum_10", "atr_pct"
+            "momentum_10", "atr_pct",
+            # Recent minute returns for momentum ranking
+            "return_1min", "return_2min", "return_3min", "return_5min",
+            "return_10min", "return_15min", "return_30min"
         ]
-        help_text = "Full analysis mode: All technical indicators available"
+        help_text = "Full analysis mode: All technical indicators + recent minute returns"
         default_idx = 0
     
     screening_criteria = st.sidebar.selectbox(
@@ -583,30 +664,58 @@ def create_screening_dashboard():
     # Advanced filters
     st.sidebar.subheader("📊 Advanced Filters")
     
-    min_pct_change = st.sidebar.slider(
-        "Min % Change from Open",
-        min_value=-10.0,
-        max_value=20.0,
-        value=0.0,
+    # Percentage change filter - using absolute values for both directions
+    min_abs_pct_change = st.sidebar.slider(
+        "Min Absolute % Change",
+        min_value=0.0,
+        max_value=10.0,
+        value=1.0,
         step=0.5,
-        help="Minimum percentage change from day's open"
+        help="Minimum absolute percentage change from day's open (captures both bullish and bearish moves)"
     )
     
     min_volume_ratio = st.sidebar.slider(
         "Min Volume Ratio",
-        min_value=0.5,
+        min_value=0.0,
         max_value=5.0,
         value=1.0,
         step=0.1,
         help="Minimum volume compared to average"
     )
     
-    min_bullish_score = st.sidebar.slider(
-        "Min Bullish Score",
+    min_interest_score = st.sidebar.slider(
+        "Min Interest Score",
         min_value=0,
-        max_value=8,
-        value=3,
-        help="Minimum bullish technical score"
+        max_value=16,
+        value=4,
+        help="Minimum interest score (bullish + bearish signals - captures interesting stocks)"
+    )
+    
+    min_abs_vwap_distance = st.sidebar.slider(
+        "Min Absolute VWAP Distance (%)",
+        min_value=0.0,
+        max_value=5.0,
+        value=0.0,
+        step=0.1,
+        help="Minimum absolute distance from VWAP (both above and below) - 0 means no filter"
+    )
+    
+    max_recent_volume_ratio = st.sidebar.slider(
+        "Max Recent Volume Ratio",
+        min_value=0.0,
+        max_value=1.0,
+        value=1.0,
+        step=0.05,
+        help="Maximum ratio of recent volume to total volume (1.0 means no filter, lower = less recent activity)"
+    )
+    
+    recent_candles = st.sidebar.slider(
+        "Recent Candles Count",
+        min_value=5,
+        max_value=30,
+        value=10,
+        step=1,
+        help="Number of recent candles to analyze for volume"
     )
     
     # Run screening
@@ -646,12 +755,51 @@ def create_screening_dashboard():
             )
         
         if not screened_df.empty:
-            # Apply filters
-            filtered_df = screened_df[
-                (screened_df['pct_change_from_open'] >= min_pct_change) &
-                (screened_df['volume_ratio'] >= min_volume_ratio) &
-                (screened_df['bullish_score'] >= min_bullish_score)
+            # Apply filters using absolute percentage change, interest score, VWAP distance, and recent volume
+            # Create the recent volume ratio column name based on selected candles
+            recent_volume_column = f'recent_volume_ratio_{recent_candles}'
+            
+            # Build filter conditions
+            filter_conditions = [
+                (abs(screened_df['pct_change_from_open']) >= min_abs_pct_change),
+                (screened_df['volume_ratio'] >= min_volume_ratio),
+                (screened_df['interest_score'] >= min_interest_score)
             ]
+            
+            # Add VWAP distance filter if specified
+            if min_abs_vwap_distance > 0:
+                filter_conditions.append(abs(screened_df['vwap_distance']) >= min_abs_vwap_distance)
+                # Debug: Show filter stats
+                st.info(f"🔧 VWAP Distance Filter: |vwap_distance| >= {min_abs_vwap_distance}%")
+                if not screened_df.empty:
+                    vwap_stats = abs(screened_df['vwap_distance']).describe()
+                    st.write(f"Absolute VWAP Distance Stats: Min={vwap_stats['min']:.3f}%, Max={vwap_stats['max']:.3f}%, Mean={vwap_stats['mean']:.3f}%")
+            else:
+                st.info(f"🔧 VWAP Distance Filter: SKIPPED (value = {min_abs_vwap_distance}%, set > 0 to activate)")
+            
+            # Add recent volume ratio filter if specified
+            if max_recent_volume_ratio < 1.0 and recent_volume_column in screened_df.columns:
+                filter_conditions.append(screened_df[recent_volume_column] <= max_recent_volume_ratio)
+                # Debug: Show filter stats
+                st.info(f"🔧 Recent Volume Filter: {recent_volume_column} <= {max_recent_volume_ratio}")
+                if not screened_df.empty:
+                    vol_stats = screened_df[recent_volume_column].describe()
+                    st.write(f"Recent Volume Ratio Stats: Min={vol_stats['min']:.3f}, Max={vol_stats['max']:.3f}, Mean={vol_stats['mean']:.3f}")
+            elif max_recent_volume_ratio >= 1.0:
+                st.info(f"🔧 Recent Volume Filter: SKIPPED (value = {max_recent_volume_ratio}, set < 1.0 to activate)")
+            elif recent_volume_column not in screened_df.columns:
+                st.warning(f"🔧 Recent Volume Filter: MISSING COLUMN ({recent_volume_column})")
+                st.info(f"Available columns: {[col for col in screened_df.columns if 'recent_volume' in col]}")
+            
+            # Apply all filters with debug info
+            filtered_df = screened_df
+            st.info(f"🔧 Debug: Starting with {len(filtered_df)} stocks")
+            
+            for i, condition in enumerate(filter_conditions):
+                before_count = len(filtered_df)
+                filtered_df = filtered_df[condition]
+                after_count = len(filtered_df)
+                st.write(f"Filter {i+1}: {before_count} → {after_count} stocks ({before_count - after_count} filtered out)")
             
             if filtered_df.empty:
                 st.warning("No stocks match your filtering criteria. Try relaxing the filters.")
@@ -686,6 +834,9 @@ def create_screening_dashboard():
                 
                 with tab1:
                     st.markdown(f"**Metrics at Cutoff Time ({cutoff_str})**")
+                    # Add recent volume ratio column if it exists
+                    recent_vol_col = f'cutoff_recent_volume_ratio_{recent_candles}'
+                    
                     cutoff_columns = [
                         'symbol', 'cutoff_time', 'cutoff_price', 'cutoff_pct_change', 
                         'cutoff_range_pct', 'cutoff_volume_ratio', 'cutoff_interest_score',
@@ -693,23 +844,56 @@ def create_screening_dashboard():
                         'cutoff_rsi', 'cutoff_vwap_distance', 'cutoff_above_vwap'
                     ]
                     
+                    # Add recent volume column if it exists
+                    if recent_vol_col in top_stocks.columns:
+                        cutoff_columns.append(recent_vol_col)
+                    
+                    # Add recent minute returns columns if they exist (show key ones)
+                    recent_return_cols = ['return_1min', 'return_3min', 'return_5min', 'return_10min']
+                    for col in recent_return_cols:
+                        if col in top_stocks.columns:
+                            cutoff_columns.append(col)
+                    
                     if all(col in top_stocks.columns for col in cutoff_columns):
                         cutoff_df = top_stocks[cutoff_columns].copy()
-                        cutoff_df.columns = [
+                        
+                        # Create column names list
+                        column_names = [
                             'Symbol', 'Cutoff Time', 'Price@Cutoff', '% Change@Cutoff', 
                             'Range%@Cutoff', 'Vol Ratio@Cutoff', 'Interest Score@Cutoff',
                             'Bull Score@Cutoff', 'Bear Score@Cutoff', 'Signal@Cutoff',
                             'RSI@Cutoff', 'VWAP Dist@Cutoff', 'Above VWAP@Cutoff'
                         ]
                         
-                        styled_cutoff = cutoff_df.style.format({
+                        # Add recent volume column name if it exists
+                        if recent_vol_col in top_stocks.columns:
+                            column_names.append(f'Recent Vol Ratio({recent_candles})')
+                        
+                        # Add recent returns column names if they exist
+                        recent_return_names = {'return_1min': '1min Return%', 'return_3min': '3min Return%', 
+                                             'return_5min': '5min Return%', 'return_10min': '10min Return%'}
+                        for col in recent_return_cols:
+                            if col in top_stocks.columns:
+                                column_names.append(recent_return_names[col])
+                        
+                        cutoff_df.columns = column_names
+                        
+                        # Build format dictionary dynamically
+                        format_dict = {
                             'Price@Cutoff': '₹{:.2f}',
                             '% Change@Cutoff': '{:.2f}%',
                             'Range%@Cutoff': '{:.2f}%',
                             'Vol Ratio@Cutoff': '{:.2f}',
                             'RSI@Cutoff': '{:.1f}',
                             'VWAP Dist@Cutoff': '{:.2f}%'
-                        }).apply(lambda x: [
+                        }
+                        
+                        # Add formatting for recent returns if they exist
+                        for col_name in ['1min Return%', '3min Return%', '5min Return%', '10min Return%']:
+                            if col_name in cutoff_df.columns:
+                                format_dict[col_name] = '{:.3f}%'
+                        
+                        styled_cutoff = cutoff_df.style.format(format_dict).apply(lambda x: [
                             'background-color: #d4edda' if val > 2 else 
                             'background-color: #f8d7da' if val < 0 else ''
                             for val in x
