@@ -509,9 +509,11 @@ class StockScreener:
             screened_df_copy['abs_vwap_distance'] = abs(screened_df_copy['vwap_distance'])
             top_stocks = screened_df_copy.nlargest(top_k, 'abs_vwap_distance')
         elif criteria.startswith('return_'):
-            # For recent minute returns, rank by strongest positive momentum first, then strongest negative
-            # This prioritizes stocks moving up but also shows strong downward moves
-            top_stocks = screened_df.nlargest(top_k, sort_column)
+            # For recent minute returns, rank by absolute values to capture strongest moves in either direction
+            screened_df_copy = screened_df.copy()
+            abs_column_name = f'abs_{sort_column}'
+            screened_df_copy[abs_column_name] = abs(screened_df_copy[sort_column])
+            top_stocks = screened_df_copy.nlargest(top_k, abs_column_name)
         else:
             top_stocks = screened_df.nlargest(top_k, sort_column)
         
