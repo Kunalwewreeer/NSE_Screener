@@ -1,290 +1,174 @@
 #!/usr/bin/env python3
 """
-Test script for Fakeout Detector
-
-Demonstrates the fakeout detection functionality with sample data and various configurations.
+Test script for the Fakeout Detector
+Demonstrates usage with sample data and different configurations.
 """
 
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-import sys
-import os
+from fakeout_detector import FakeoutDetector, create_sample_data
 
-# Add the strategies directory to the path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'strategies'))
-
-from fakeout_detector import FakeoutDetector, detect_fakeout_signals
-
-def create_sample_data(days: int = 5, minutes_per_day: int = 390) -> pd.DataFrame:
-    """
-    Create sample OHLCV data with fakeout patterns for testing.
+def test_basic_detection():
+    """Test basic fakeout detection with sample data."""
+    print("🧪 Testing Basic Fakeout Detection")
+    print("=" * 50)
     
-    Args:
-        days: Number of trading days to generate
-        minutes_per_day: Minutes per trading day
+    # Create sample data
+    df, vwap = create_sample_data()
+    print(f"Created sample data: {len(df)} candles from {df.index[0]} to {df.index[-1]}")
+    
+    # Initialize detector with default config
+    detector = FakeoutDetector()
+    
+    # Detect signals
+    signals = detector.detect_fakeout_signals(df, vwap, 'pdh_pdl')
+    
+    # Print results
+    detector.print_debug_summary()
+    
+    return detector, df, vwap, signals
+
+def test_custom_config():
+    """Test with custom configuration."""
+    print("\n🧪 Testing Custom Configuration")
+    print("=" * 50)
+    
+    # Create sample data
+    df, vwap = create_sample_data()
+    
+    # Custom config for more sensitive detection
+    config = {
+        'wick_threshold_pct': 0.2,  # Lower wick threshold
+        'confirmation_threshold_pct': 0.3,  # Lower confirmation threshold
+        'level_tolerance_pct': 0.05,  # Tighter level tolerance
+        'lookback_window': 10,  # Shorter lookback
+        'min_candles_between_signals': 3,  # Allow more frequent signals
+        'sl_atr_multiplier': 1.0,  # Tighter stop loss
+        'tp_atr_multiplier': 1.5,  # Closer take profit
+        'atr_period': 10,
+        'debug_mode': True,
+        'log_level': 'INFO'
+    }
+    
+    detector = FakeoutDetector(config)
+    
+    # Test different level types
+    level_types = ['pdh_pdl', 'vwap', 'support_resistance']
+    
+    for level_type in level_types:
+        print(f"\n--- Testing {level_type.upper()} ---")
+        signals = detector.detect_fakeout_signals(df, vwap, level_type)
+        print(f"Found {len(signals)} signals with {level_type}")
         
-    Returns:
-        DataFrame with OHLCV data and fakeout patterns
-    """
-    print("📊 Creating sample data with fakeout patterns...")
+        if signals:
+            # Show first signal details
+            signal = signals[0]
+            print(f"Sample signal: {signal['signal_type']} at {signal['timestamp']}")
+            print(f"Entry: {signal['entry']:.2f}, SL: {signal['stop_loss']:.2f}, TP: {signal['take_profit']:.2f}")
+
+def test_real_data_integration():
+    """Test integration with real data format."""
+    print("\n🧪 Testing Real Data Integration")
+    print("=" * 50)
     
-    # Generate datetime index
-    start_date = datetime(2024, 1, 1, 9, 15)
-    timestamps = []
+    # Simulate real data format (like from your data handler)
+    dates = pd.date_range('2024-01-01 09:15:00', '2024-01-01 15:30:00', freq='1min')
     
-    for day in range(days):
-        for minute in range(minutes_per_day):
-            timestamp = start_date + timedelta(days=day, minutes=minute)
-            timestamps.append(timestamp)
+    # Create realistic price data with fakeouts
+    np.random.seed(123)
+    base_price = 18500  # Nifty-like price
     
-    # Create base price movement
-    np.random.seed(42)  # For reproducible results
-    base_price = 100
-    price_changes = np.random.normal(0, 0.001, len(timestamps))
-    prices = [base_price]
-    
-    for change in price_changes[1:]:
-        new_price = prices[-1] * (1 + change)
-        prices.append(new_price)
-    
-    # Create OHLCV data
     data = []
-    for i, (timestamp, price) in enumerate(zip(timestamps, prices)):
-        # Add some volatility
-        volatility = 0.002
-        high = price * (1 + abs(np.random.normal(0, volatility)))
-        low = price * (1 - abs(np.random.normal(0, volatility)))
-        open_price = price * (1 + np.random.normal(0, volatility * 0.5))
-        close_price = price * (1 + np.random.normal(0, volatility * 0.5))
-        volume = np.random.randint(1000, 10000)
+    for i, date in enumerate(dates):
+        if i == 0:
+            price = base_price
+        else:
+            # Add some trend and volatility
+            trend = np.sin(i / 100) * 10  # Cyclical trend
+            noise = np.random.normal(0, 5)  # Random noise
+            price = data[-1]['close'] + trend + noise
+        
+        # Create OHLCV
+        open_price = price
+        high_price = price + abs(np.random.normal(0, 8))
+        low_price = price - abs(np.random.normal(0, 8))
+        close_price = price + np.random.normal(0, 5)
+        volume = np.random.randint(50000, 200000)
+        
+        # Add fakeout patterns
+        if i % 30 == 15:  # Every 30 minutes
+            if np.random.choice([True, False]):
+                # Resistance fakeout
+                high_price += 20
+                close_price = price - 15  # Close below high (wick)
+            else:
+                # Support fakeout
+                low_price -= 20
+                close_price = price + 15  # Close above low (wick)
         
         data.append({
             'open': open_price,
-            'high': max(high, open_price, close_price),
-            'low': min(low, open_price, close_price),
+            'high': high_price,
+            'low': low_price,
             'close': close_price,
             'volume': volume
         })
     
-    df = pd.DataFrame(data, index=timestamps)
+    df = pd.DataFrame(data, index=dates)
     
-    # Add fakeout patterns manually
-    df = _add_fakeout_patterns(df)
+    # Calculate VWAP
+    vwap = (df['close'] * df['volume']).cumsum() / df['volume'].cumsum()
     
-    print(f"✅ Created sample data: {len(df)} candles across {days} days")
-    return df
-
-def _add_fakeout_patterns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Add manual fakeout patterns to the sample data.
-    
-    Args:
-        df: OHLCV DataFrame
-        
-    Returns:
-        DataFrame with added fakeout patterns
-    """
-    df = df.copy()
-    
-    # Pattern 1: Resistance fakeout (short signal)
-    # Around candle 500
-    if len(df) > 500:
-        # Create a resistance level
-        resistance_level = df.iloc[490:500]['high'].max()
-        
-        # Breakout candle with wick
-        df.iloc[500, df.columns.get_loc('high')] = resistance_level * 1.02  # Breakout
-        df.iloc[500, df.columns.get_loc('close')] = resistance_level * 0.99  # Close below
-        df.iloc[500, df.columns.get_loc('volume')] = df.iloc[500]['volume'] * 2  # High volume
-        
-        # Confirmation candle
-        df.iloc[501, df.columns.get_loc('close')] = resistance_level * 0.97  # Further below
-        
-        print(f"🔴 Added resistance fakeout pattern at candle 500, level: {resistance_level:.2f}")
-    
-    # Pattern 2: Support fakeout (long signal)
-    # Around candle 1000
-    if len(df) > 1000:
-        # Create a support level
-        support_level = df.iloc[990:1000]['low'].min()
-        
-        # Breakout candle with wick
-        df.iloc[1000, df.columns.get_loc('low')] = support_level * 0.98  # Breakout
-        df.iloc[1000, df.columns.get_loc('close')] = support_level * 1.01  # Close above
-        df.iloc[1000, df.columns.get_loc('volume')] = df.iloc[1000]['volume'] * 2  # High volume
-        
-        # Confirmation candle
-        df.iloc[1001, df.columns.get_loc('close')] = support_level * 1.03  # Further above
-        
-        print(f"🟢 Added support fakeout pattern at candle 1000, level: {support_level:.2f}")
-    
-    return df
-
-def test_basic_detection():
-    """Test basic fakeout detection functionality."""
-    print("\n🧪 Testing Basic Fakeout Detection")
-    print("=" * 50)
-    
-    # Create sample data
-    df = create_sample_data(days=3, minutes_per_day=200)
-    
-    # Test with default configuration
-    config = {
-        'debug_mode': True,
-        'log_level': 'INFO',
-        'breakout_threshold': 0.01,  # 1% breakout
-        'wick_threshold': 0.2,  # 20% wick
-        'confirmation_candles': 1,  # 1 confirmation candle
-        'sl_multiplier': 1.5,
-        'tp_multiplier': 2.0,
-        'plot_signals': True
-    }
-    
-    print(f"📋 Configuration: {config}")
-    
-    # Detect fakeout signals
-    fakeout_signals, breakout_signals = detect_fakeout_signals(
-        df, config=config, level_type='pdh_pdl', plot=True
-    )
-    
-    # Display results
-    print(f"\n📊 Results:")
-    print(f"Breakout signals detected: {len(breakout_signals)}")
-    print(f"Fakeout signals confirmed: {len(fakeout_signals)}")
-    
-    if fakeout_signals:
-        print("\n🎯 Fakeout Signals:")
-        for i, signal in enumerate(fakeout_signals, 1):
-            print(f"Signal {i}:")
-            print(f"  Type: {signal['signal_type']}")
-            print(f"  Entry Time: {signal['entry_time']}")
-            print(f"  Entry Price: {signal['entry_price']:.2f}")
-            print(f"  SL Price: {signal['sl_price']:.2f}")
-            print(f"  TP Price: {signal['tp_price']:.2f}")
-            print(f"  Level: {signal['level']:.2f}")
-            print(f"  ATR: {signal['atr']:.4f}")
-            print(f"  Volume Ratio: {signal['volume_ratio']:.2f}")
-            print(f"  Wick Ratio: {signal['wick_ratio']:.2f}")
-            print()
-
-def test_different_configurations():
-    """Test fakeout detection with different configurations."""
-    print("\n🧪 Testing Different Configurations")
-    print("=" * 50)
-    
-    # Create sample data
-    df = create_sample_data(days=2, minutes_per_day=150)
-    
-    # Test configurations
-    configs = [
-        {
-            'name': 'Conservative',
-            'breakout_threshold': 0.02,  # 2% breakout
-            'wick_threshold': 0.4,  # 40% wick
-            'confirmation_candles': 2,  # 2 confirmation candles
-            'volume_spike_threshold': 2.0,  # Higher volume requirement
-        },
-        {
-            'name': 'Aggressive',
-            'breakout_threshold': 0.005,  # 0.5% breakout
-            'wick_threshold': 0.1,  # 10% wick
-            'confirmation_candles': 1,  # 1 confirmation candle
-            'volume_spike_threshold': 1.2,  # Lower volume requirement
-        },
-        {
-            'name': 'VWAP Levels',
-            'breakout_threshold': 0.01,  # 1% breakout
-            'wick_threshold': 0.3,  # 30% wick
-            'confirmation_candles': 1,  # 1 confirmation candle
-        }
-    ]
-    
-    for config in configs:
-        print(f"\n🔧 Testing {config['name']} Configuration:")
-        
-        # Remove name from config for detector
-        detector_config = {k: v for k, v in config.items() if k != 'name'}
-        detector_config.update({
-            'debug_mode': True,
-            'log_level': 'INFO',
-            'plot_signals': False  # Disable plotting for multiple tests
-        })
-        
-        # Test with PDH/PDL levels
-        fakeout_signals, breakout_signals = detect_fakeout_signals(
-            df, config=detector_config, level_type='pdh_pdl', plot=False
-        )
-        
-        print(f"  Breakout signals: {len(breakout_signals)}")
-        print(f"  Fakeout signals: {len(fakeout_signals)}")
-        
-        # Test with VWAP levels for VWAP config
-        if config['name'] == 'VWAP Levels':
-            fakeout_signals_vwap, breakout_signals_vwap = detect_fakeout_signals(
-                df, config=detector_config, level_type='vwap', plot=False
-            )
-            print(f"  VWAP Breakout signals: {len(breakout_signals_vwap)}")
-            print(f"  VWAP Fakeout signals: {len(fakeout_signals_vwap)}")
-
-def test_custom_levels():
-    """Test fakeout detection with custom levels."""
-    print("\n🧪 Testing Custom Levels")
-    print("=" * 50)
-    
-    # Create sample data
-    df = create_sample_data(days=1, minutes_per_day=100)
-    
-    # Add custom levels
-    df['pdh'] = df['high'].rolling(window=10).max()  # Custom resistance
-    df['pdl'] = df['low'].rolling(window=10).min()   # Custom support
-    
-    print("📊 Added custom PDH/PDL levels")
+    print(f"Created realistic data: {len(df)} 1-minute candles")
+    print(f"Price range: {df['low'].min():.2f} - {df['high'].max():.2f}")
     
     # Test detection
-    config = {
+    detector = FakeoutDetector({
+        'wick_threshold_pct': 0.5,
         'debug_mode': True,
-        'log_level': 'INFO',
-        'breakout_threshold': 0.01,
-        'wick_threshold': 0.3,
-        'confirmation_candles': 1,
-        'plot_signals': True
-    }
+        'min_candles_between_signals': 10
+    })
     
-    fakeout_signals, breakout_signals = detect_fakeout_signals(
-        df, config=config, level_type='custom', plot=True
-    )
+    signals = detector.detect_fakeout_signals(df, vwap, 'pdh_pdl')
     
-    print(f"📊 Results with custom levels:")
-    print(f"Breakout signals: {len(breakout_signals)}")
-    print(f"Fakeout signals: {len(fakeout_signals)}")
+    print(f"\nDetection Results:")
+    print(f"Total signals: {len(signals)}")
+    
+    if signals:
+        print("\nSignal Details:")
+        for i, signal in enumerate(signals[:3]):  # Show first 3 signals
+            print(f"{i+1}. {signal['signal_type']} at {signal['timestamp']}")
+            print(f"   Entry: {signal['entry']:.2f}, SL: {signal['stop_loss']:.2f}, TP: {signal['take_profit']:.2f}")
+            print(f"   Level: {signal['level_value']:.2f}")
+    
+    return detector, df, vwap, signals
 
 def main():
     """Run all tests."""
     print("🚀 Fakeout Detector Test Suite")
     print("=" * 60)
     
-    try:
-        # Test basic functionality
-        test_basic_detection()
-        
-        # Test different configurations
-        test_different_configurations()
-        
-        # Test custom levels
-        test_custom_levels()
-        
-        print("\n✅ All tests completed successfully!")
-        print("\n📝 Usage Examples:")
-        print("1. Basic usage: detect_fakeout_signals(df)")
-        print("2. Custom config: detect_fakeout_signals(df, config=my_config)")
-        print("3. VWAP levels: detect_fakeout_signals(df, level_type='vwap')")
-        print("4. Custom levels: detect_fakeout_signals(df, level_type='custom')")
-        
-    except Exception as e:
-        print(f"\n❌ Error during testing: {e}")
-        import traceback
-        traceback.print_exc()
+    # Test 1: Basic detection
+    detector1, df1, vwap1, signals1 = test_basic_detection()
+    
+    # Test 2: Custom configuration
+    test_custom_config()
+    
+    # Test 3: Real data integration
+    detector3, df3, vwap3, signals3 = test_real_data_integration()
+    
+    # Summary
+    print("\n" + "=" * 60)
+    print("📊 TEST SUMMARY")
+    print("=" * 60)
+    print(f"✅ Basic detection: {len(signals1)} signals")
+    print(f"✅ Real data integration: {len(signals3)} signals")
+    print("\n🎯 All tests completed successfully!")
+    
+    # Optional: Plot the results
+    if signals3:
+        print("\n📈 Plotting results...")
+        detector3.plot_signals(df3, signals3, vwap3, 'pdh_pdl')
 
 if __name__ == "__main__":
     main() 
