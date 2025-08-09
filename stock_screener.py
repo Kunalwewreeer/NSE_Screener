@@ -13,11 +13,13 @@ import concurrent.futures
 from typing import Dict, List, Tuple, Optional
 import time
 import warnings
+import os
 warnings.filterwarnings('ignore')
 
 # Import our existing modules
 from core.data_handler import DataHandler
 from utils.logger import get_logger
+from cache_manager import add_cache_management_to_sidebar, add_data_completeness_settings, validate_screening_data
 
 logger = get_logger(__name__)
 
@@ -398,7 +400,8 @@ class StockScreener:
     
     def screen_stocks(self, universe: List[str], start_date: str, end_date: str,
                      cutoff_time: Optional[str] = None, max_workers: int = 3, 
-                     request_delay: float = 0.1) -> pd.DataFrame:
+                     request_delay: float = 0.1, refresh_cache: bool = False,
+                     min_data_points: int = 30, allow_incomplete_data: bool = True) -> pd.DataFrame:
         """Screen multiple stocks in parallel."""
         
         st.info(f"📊 Screening {len(universe)} stocks...")
@@ -518,6 +521,128 @@ class StockScreener:
             top_stocks = screened_df.nlargest(top_k, sort_column)
         
         return top_stocks
+    
+    def run_vwap_mean_reversion_backtest(self, screened_df: pd.DataFrame, top_k: int = 5, 
+                                       start_date: str = None, end_date: str = None, 
+                                       cutoff_time: str = "10:15:00") -> Dict:
+        """
+        Run VWAP mean reversion backtest:
+        - Select top K stocks by absolute VWAP distance
+        - Long stocks below VWAP (negative distance)  
+        - Short stocks above VWAP (positive distance)
+        - Hold till EOD
+        """
+        try:
+            st.info(f"Debug: Starting backtest with {len(screened_df)} stocks, top_k={top_k}")
+            
+            # Get top stocks by absolute VWAP distance
+            top_stocks = self.get_top_stocks(screened_df, 'vwap_distance', top_k)
+            
+            st.info(f"Debug: Selected {len(top_stocks)} top stocks for backtest")
+            
+            if top_stocks.empty:
+                return {"error": "No stocks found for backtesting"}
+            
+            backtest_results = []
+            total_pnl = 0
+            total_trades = 0
+            winning_trades = 0
+            
+            st.info(f"🔄 Running VWAP Mean Reversion Backtest on {len(top_stocks)} stocks...")
+            progress_bar = st.progress(0)
+            
+            for idx, (_, stock) in enumerate(top_stocks.iterrows()):
+                symbol = stock['symbol']
+                cutoff_vwap_distance = stock.get('cutoff_vwap_distance', 0)
+                cutoff_price = stock.get('cutoff_price', 0)
+                eod_price = stock.get('eod_price', 0)
+                
+                st.info(f"Debug: Processing {symbol} - VWAP dist: {cutoff_vwap_distance:.2f}%, cutoff: {cutoff_price}, eod: {eod_price}")
+                
+                if cutoff_price == 0 or eod_price == 0:
+                    st.warning(f"Debug: Skipping {symbol} - missing price data")
+                    continue
+                
+                # Determine position based on VWAP distance
+                if cutoff_vwap_distance > 0:
+                    # Stock above VWAP -> SHORT
+                    position = "SHORT"
+                    # For short: profit when price goes down
+                    pnl_pct = ((cutoff_price - eod_price) / cutoff_price) * 100
+                else:
+                    # Stock below VWAP -> LONG  
+                    position = "LONG"
+                    # For long: profit when price goes up
+                    pnl_pct = ((eod_price - cutoff_price) / cutoff_price) * 100
+                
+                # Calculate trade metrics
+                is_winner = pnl_pct > 0
+                if is_winner:
+                    winning_trades += 1
+                
+                trade_result = {
+                    'symbol': symbol,
+                    'position': position,
+                    'cutoff_time': stock.get('cutoff_time', cutoff_time),
+                    'cutoff_price': cutoff_price,
+                    'eod_price': eod_price,
+                    'vwap_distance': cutoff_vwap_distance,
+                    'pnl_pct': pnl_pct,
+                    'pnl_absolute': (pnl_pct / 100) * cutoff_price,
+                    'is_winner': is_winner,
+                    'trade_reason': f"{'Above' if cutoff_vwap_distance > 0 else 'Below'} VWAP by {abs(cutoff_vwap_distance):.2f}%"
+                }
+                
+                backtest_results.append(trade_result)
+                total_pnl += pnl_pct
+                total_trades += 1
+                
+                st.info(f"Debug: {symbol} {position} - P&L: {pnl_pct:.2f}%")
+                
+                # Update progress
+                progress_bar.progress((idx + 1) / len(top_stocks))
+            
+            progress_bar.empty()
+            
+            st.info(f"Debug: Completed {total_trades} trades, {winning_trades} winners")
+            
+            # Calculate summary statistics
+            if total_trades > 0:
+                win_rate = (winning_trades / total_trades) * 100
+                avg_pnl = total_pnl / total_trades
+                
+                # Calculate additional metrics
+                winning_pnl = sum([t['pnl_pct'] for t in backtest_results if t['is_winner']])
+                losing_pnl = sum([t['pnl_pct'] for t in backtest_results if not t['is_winner']])
+                
+                avg_win = winning_pnl / winning_trades if winning_trades > 0 else 0
+                avg_loss = losing_pnl / (total_trades - winning_trades) if (total_trades - winning_trades) > 0 else 0
+                
+                profit_factor = abs(winning_pnl / losing_pnl) if losing_pnl != 0 else float('inf')
+                
+                summary = {
+                    'total_trades': total_trades,
+                    'winning_trades': winning_trades,
+                    'losing_trades': total_trades - winning_trades,
+                    'win_rate': win_rate,
+                    'total_pnl_pct': total_pnl,
+                    'avg_pnl_pct': avg_pnl,
+                    'avg_win_pct': avg_win,
+                    'avg_loss_pct': avg_loss,
+                    'profit_factor': profit_factor,
+                    'trades': backtest_results
+                }
+                
+                st.info(f"Debug: Backtest summary - Win rate: {win_rate:.1f}%, Total P&L: {total_pnl:.2f}%")
+                
+                return summary
+            else:
+                return {"error": "No valid trades executed"}
+                
+        except Exception as e:
+            st.error(f"Debug: Error in VWAP mean reversion backtest: {e}")
+            logger.error(f"Error in VWAP mean reversion backtest: {e}")
+            return {"error": str(e)}
 
 def create_screening_dashboard():
     """Create the main screening dashboard."""
@@ -532,6 +657,7 @@ def create_screening_dashboard():
     .bullish { color: #28a745; font-weight: bold; }
     .bearish { color: #dc3545; font-weight: bold; }
     .neutral { color: #6c757d; font-weight: bold; }
+    .cache-refresh { background-color: #ffc107; color: #000; padding: 0.5rem; border-radius: 0.3rem; }
     </style>
     """, unsafe_allow_html=True)
     
@@ -543,6 +669,30 @@ def create_screening_dashboard():
     
     # Sidebar controls
     st.sidebar.header("🎛️ Screening Controls")
+    
+    # Cache Management Section
+    st.sidebar.subheader("🗄️ Cache Management")
+    
+    col1, col2 = st.sidebar.columns(2)
+    with col1:
+        refresh_cache = st.button("🔄 Refresh Cache", type="secondary", help="Force refresh all cached data")
+    with col2:
+        clear_cache = st.button("🗑️ Clear Cache", type="secondary", help="Clear all cached data")
+    
+    if refresh_cache:
+        st.sidebar.success("✅ Cache refresh initiated! Data will be re-downloaded from API.")
+        st.session_state['refresh_cache'] = True
+    elif clear_cache:
+        st.sidebar.success("✅ Cache cleared! Next run will download fresh data.")
+        st.session_state['clear_cache'] = True
+    
+    # Show cache status
+    cache_dir = os.path.join(os.path.dirname(__file__), 'data', 'cache')
+    if os.path.exists(cache_dir):
+        cache_files = len([f for f in os.listdir(cache_dir) if f.endswith('.pkl')])
+        st.sidebar.info(f"📁 Cache Status: {cache_files} files cached")
+    else:
+        st.sidebar.info("📁 Cache Status: No cache directory found")
     
     # Universe selection
     universe_type = st.sidebar.selectbox(
@@ -604,6 +754,28 @@ def create_screening_dashboard():
         st.sidebar.warning(f"⚠️ Early Morning Mode - Using simplified metrics (% change, volume) as technical indicators need more data")
     else:
         st.sidebar.success(f"📅 Full Analysis Mode - All technical indicators available")
+    
+    # Data Completeness Settings
+    st.sidebar.subheader("📊 Data Completeness")
+    
+    min_data_points = st.sidebar.slider(
+        "Min Data Points Required",
+        min_value=10,
+        max_value=100,
+        value=30,
+        help="Minimum number of data points required for analysis (higher = more complete data)"
+    )
+    
+    allow_incomplete_data = st.sidebar.checkbox(
+        "Allow Incomplete Data",
+        value=True,
+        help="Allow screening with incomplete data (useful for live trading)"
+    )
+    
+    if allow_incomplete_data:
+        st.sidebar.info("✅ Will proceed with available data even if incomplete")
+    else:
+        st.sidebar.warning("⚠️ Will skip stocks with incomplete data")
     
     # Screening criteria - adjust based on early morning mode
     if is_early_morning:
@@ -745,16 +917,39 @@ def create_screening_dashboard():
         end_date_str = (start_date_for_api + timedelta(days=1)).strftime('%Y-%m-%d')
         #end_date_str = date_str
         
-        # Run screening
+        # Determine if we should refresh cache
+        refresh_cache_flag = st.session_state.get('refresh_cache', False)
+        if refresh_cache_flag:
+            st.info("🔄 Cache refresh mode: Will re-download all data from API")
+            st.session_state['refresh_cache'] = False  # Reset flag
+        
+        # Run screening with enhanced data handling
         with st.spinner("🔍 Screening stocks..."):
-            screened_df = screener.screen_stocks(
-                universe=universe,
-                start_date=start_date_str,
-                end_date=end_date_str,
-                cutoff_time=cutoff_str,
-                max_workers=max_workers,
-                request_delay=request_delay / 1000.0  # Convert ms to seconds
-            )
+            try:
+                screened_df = screener.screen_stocks(
+                    universe=universe,
+                    start_date=start_date_str,
+                    end_date=end_date_str,
+                    cutoff_time=cutoff_str,
+                    max_workers=max_workers,
+                    request_delay=request_delay / 1000.0,  # Convert ms to seconds
+                    refresh_cache=refresh_cache_flag,
+                    min_data_points=min_data_points,
+                    allow_incomplete_data=allow_incomplete_data
+                )
+                
+                if screened_df.empty:
+                    st.error("❌ No stocks found with sufficient data. Try:")
+                    st.error("• Reducing 'Min Data Points Required'")
+                    st.error("• Enabling 'Allow Incomplete Data'")
+                    st.error("• Refreshing cache to get latest data")
+                    st.error("• Using a different date (yesterday recommended)")
+                    st.stop()
+                
+            except Exception as e:
+                st.error(f"❌ Error during screening: {str(e)}")
+                st.error("Try refreshing cache or using different settings")
+                st.stop()
         
         if not screened_df.empty:
             # Apply filters using absolute percentage change, interest score, VWAP distance, and recent volume
@@ -832,7 +1027,7 @@ def create_screening_dashboard():
                 st.markdown("### 🏆 Top Performing Stocks (Cutoff vs EOD Comparison)")
                 
                 # Create tabs for different views
-                tab1, tab2, tab3 = st.tabs(["📊 Cutoff Time Metrics", "🕐 EOD Metrics", "📈 Performance Comparison"])
+                tab1, tab2, tab3, tab4 = st.tabs(["📊 Cutoff Time Metrics", "🕐 EOD Metrics", "📈 Performance Comparison", "🎯 VWAP Backtest"])
                 
                 with tab1:
                     st.markdown(f"**Metrics at Cutoff Time ({cutoff_str})**")
@@ -876,143 +1071,155 @@ def create_screening_dashboard():
                                              'return_5min': '5min Return%', 'return_10min': '10min Return%'}
                         for col in recent_return_cols:
                             if col in top_stocks.columns:
-                                column_names.append(recent_return_names[col])
+                                column_names.append(recent_return_names.get(col, col))
                         
+                        # Rename columns for display
                         cutoff_df.columns = column_names
                         
-                        # Build format dictionary dynamically
-                        format_dict = {
-                            'Price@Cutoff': '₹{:.2f}',
-                            '% Change@Cutoff': '{:.2f}%',
-                            'Range%@Cutoff': '{:.2f}%',
-                            'Vol Ratio@Cutoff': '{:.2f}',
-                            'RSI@Cutoff': '{:.1f}',
-                            'VWAP Dist@Cutoff': '{:.2f}%'
-                        }
+                        # Format numeric columns
+                        numeric_cols = cutoff_df.select_dtypes(include=[np.number]).columns
+                        for col in numeric_cols:
+                            if 'Return%' in col or 'Change%' in col or 'Dist%' in col:
+                                cutoff_df[col] = cutoff_df[col].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "N/A")
+                            elif 'Ratio' in col:
+                                cutoff_df[col] = cutoff_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
+                            elif 'Score' in col:
+                                cutoff_df[col] = cutoff_df[col].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
+                            else:
+                                cutoff_df[col] = cutoff_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
                         
-                        # Add formatting for recent returns if they exist
-                        for col_name in ['1min Return%', '3min Return%', '5min Return%', '10min Return%']:
-                            if col_name in cutoff_df.columns:
-                                format_dict[col_name] = '{:.3f}%'
-                        
-                        styled_cutoff = cutoff_df.style.format(format_dict).apply(lambda x: [
-                            'background-color: #d4edda' if val > 2 else 
-                            'background-color: #f8d7da' if val < 0 else ''
-                            for val in x
-                        ], subset=['% Change@Cutoff'])
-                        
-                        st.dataframe(styled_cutoff, use_container_width=True)
+                        st.dataframe(cutoff_df, use_container_width=True)
                     else:
-                        st.warning("Cutoff time data not available. Please re-run screening.")
+                        st.error("Missing required columns for cutoff time display")
+                        st.write("Available columns:", list(top_stocks.columns))
                 
                 with tab2:
                     st.markdown("**End of Day Metrics**")
                     eod_columns = [
-                        'symbol', 'eod_time', 'eod_price', 'eod_pct_change', 
-                        'eod_range_pct', 'eod_volume_ratio', 'eod_interest_score',
-                        'eod_bullish_score', 'eod_bearish_score', 'eod_signal_direction',
-                        'eod_rsi', 'eod_vwap_distance', 'eod_above_vwap'
+                        'symbol', 'eod_price', 'eod_pct_change', 'eod_range_pct', 
+                        'eod_volume_ratio', 'eod_interest_score', 'eod_bullish_score', 
+                        'eod_bearish_score', 'eod_signal_direction', 'eod_rsi', 
+                        'eod_vwap_distance', 'eod_above_vwap'
                     ]
                     
                     if all(col in top_stocks.columns for col in eod_columns):
                         eod_df = top_stocks[eod_columns].copy()
                         eod_df.columns = [
-                            'Symbol', 'EOD Time', 'Price@EOD', '% Change@EOD', 
-                            'Range%@EOD', 'Vol Ratio@EOD', 'Interest Score@EOD',
-                            'Bull Score@EOD', 'Bear Score@EOD', 'Signal@EOD',
-                            'RSI@EOD', 'VWAP Dist@EOD', 'Above VWAP@EOD'
+                            'Symbol', 'EOD Price', 'EOD % Change', 'EOD Range %', 
+                            'EOD Vol Ratio', 'EOD Interest Score', 'EOD Bull Score', 
+                            'EOD Bear Score', 'EOD Signal', 'EOD RSI', 'EOD VWAP Dist', 'EOD Above VWAP'
                         ]
                         
-                        styled_eod = eod_df.style.format({
-                            'Price@EOD': '₹{:.2f}',
-                            '% Change@EOD': '{:.2f}%',
-                            'Range%@EOD': '{:.2f}%',
-                            'Vol Ratio@EOD': '{:.2f}',
-                            'RSI@EOD': '{:.1f}',
-                            'VWAP Dist@EOD': '{:.2f}%'
-                        }).apply(lambda x: [
-                            'background-color: #d4edda' if val > 2 else 
-                            'background-color: #f8d7da' if val < 0 else ''
-                            for val in x
-                        ], subset=['% Change@EOD'])
+                        # Format numeric columns
+                        numeric_cols = eod_df.select_dtypes(include=[np.number]).columns
+                        for col in numeric_cols:
+                            if 'Change%' in col or 'Range%' in col or 'Dist%' in col:
+                                eod_df[col] = eod_df[col].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "N/A")
+                            elif 'Ratio' in col:
+                                eod_df[col] = eod_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
+                            elif 'Score' in col:
+                                eod_df[col] = eod_df[col].apply(lambda x: f"{x:.1f}" if pd.notna(x) else "N/A")
+                            else:
+                                eod_df[col] = eod_df[col].apply(lambda x: f"{x:.2f}" if pd.notna(x) else "N/A")
                         
-                        st.dataframe(styled_eod, use_container_width=True)
+                        st.dataframe(eod_df, use_container_width=True)
                     else:
-                        st.warning("EOD data not available. Please re-run screening.")
+                        st.warning("EOD metrics not available - data may be incomplete")
                 
                 with tab3:
-                    st.markdown("**Performance from Cutoff to EOD**")
-                    perf_columns = [
-                        'symbol', 'cutoff_pct_change', 'eod_pct_change', 'cutoff_to_eod_change',
-                        'cutoff_to_eod_high', 'cutoff_to_eod_low', 'cutoff_interest_score', 'eod_interest_score',
-                        'cutoff_signal_direction', 'eod_signal_direction'
+                    st.markdown("**Performance Comparison (Cutoff vs EOD)**")
+                    comparison_columns = [
+                        'symbol', 'cutoff_pct_change', 'eod_pct_change', 
+                        'performance_diff', 'signal_accuracy'
                     ]
                     
-                    if all(col in top_stocks.columns for col in perf_columns):
-                        perf_df = top_stocks[perf_columns].copy()
-                        perf_df.columns = [
-                            'Symbol', 'Cutoff%', 'EOD%', 'Cutoff→EOD%',
-                            'Max Gain%', 'Max Loss%', 'Interest@Cutoff', 'Interest@EOD',
-                            'Signal@Cutoff', 'Signal@EOD'
+                    if all(col in top_stocks.columns for col in comparison_columns):
+                        comp_df = top_stocks[comparison_columns].copy()
+                        comp_df.columns = [
+                            'Symbol', 'Cutoff % Change', 'EOD % Change', 
+                            'Performance Diff', 'Signal Accuracy'
                         ]
                         
-                        styled_perf = perf_df.style.format({
-                            'Cutoff%': '{:.2f}%',
-                            'EOD%': '{:.2f}%', 
-                            'Cutoff→EOD%': '{:.2f}%',
-                            'Max Gain%': '{:.2f}%',
-                            'Max Loss%': '{:.2f}%'
-                        }).apply(lambda x: [
-                            'background-color: #d4edda' if val > 1 else 
-                            'background-color: #f8d7da' if val < -1 else ''
-                            for val in x
-                        ], subset=['Cutoff→EOD%', 'Max Gain%', 'Max Loss%'])
+                        # Format numeric columns
+                        for col in comp_df.columns:
+                            if col != 'Symbol':
+                                comp_df[col] = comp_df[col].apply(lambda x: f"{x:.2f}%" if pd.notna(x) else "N/A")
                         
-                        st.dataframe(styled_perf, use_container_width=True)
-                        
-                        # Summary statistics
-                        st.markdown("#### 📊 Performance Summary")
-                        col1, col2, col3, col4 = st.columns(4)
-                        
-                        with col1:
-                            avg_cutoff_to_eod = perf_df['Cutoff→EOD%'].mean()
-                            st.metric("Avg Cutoff→EOD", f"{avg_cutoff_to_eod:.2f}%")
-                        
-                        with col2:
-                            max_gain_avg = perf_df['Max Gain%'].mean()
-                            st.metric("Avg Max Gain", f"{max_gain_avg:.2f}%")
-                        
-                        with col3:
-                            max_loss_avg = perf_df['Max Loss%'].mean()
-                            st.metric("Avg Max Loss", f"{max_loss_avg:.2f}%")
-                        
-                        with col4:
-                            profitable_count = (perf_df['Cutoff→EOD%'] > 0).sum()
-                            win_rate = (profitable_count / len(perf_df)) * 100
-                            st.metric("Win Rate", f"{win_rate:.1f}%")
+                        st.dataframe(comp_df, use_container_width=True)
                     else:
-                        st.warning("Performance data not available. Please re-run screening.")
+                        st.warning("Performance comparison not available - data may be incomplete")
                 
-                # Create visualization
+                with tab4:
+                    st.markdown("**VWAP Mean Reversion Backtest**")
+                    if st.button("Run VWAP Backtest"):
+                        with st.spinner("Running VWAP backtest..."):
+                            try:
+                                backtest_results = screener.run_vwap_mean_reversion_backtest(
+                                    screened_df, top_k=5, 
+                                    start_date=start_date_str, 
+                                    end_date=end_date_str,
+                                    cutoff_time=cutoff_str
+                                )
+                                
+                                if backtest_results:
+                                    st.success("Backtest completed successfully!")
+                                    st.write("Results:", backtest_results)
+                                else:
+                                    st.warning("Backtest failed - insufficient data")
+                            except Exception as e:
+                                st.error(f"Backtest error: {str(e)}")
+                    else:
+                        st.info("Click 'Run VWAP Backtest' to execute the backtest")
+                
+                # Detailed analysis section
+                st.markdown("## 🔍 Detailed Stock Analysis")
+                
+                if 'screened_stocks' in st.session_state:
+                    selected_stock = st.selectbox(
+                        "Select a stock for detailed analysis:",
+                        options=top_stocks['symbol'].tolist(),
+                        index=0
+                    )
+                    
+                    if selected_stock:
+                        stock_data = top_stocks[top_stocks['symbol'] == selected_stock].iloc[0]
+                        create_detailed_stock_analysis(stock_data)
+                        
+                        # Show stock chart if data is available
+                        try:
+                            stock_df = screener.data_handler.get_historical_data(
+                                selected_stock, start_date_str, end_date_str, "5minute"
+                            )
+                            if stock_df is not None and not stock_df.empty:
+                                create_stock_chart(stock_df, selected_stock)
+                        except Exception as e:
+                            st.warning(f"Could not load chart data for {selected_stock}: {str(e)}")
+                
+                # Visualization section
+                st.markdown("## 📈 Screening Visualization")
                 create_screening_visualization(top_stocks)
     
-    # Display stored results if available
-    if 'screened_stocks' in st.session_state:
-        st.markdown("---")
-        st.markdown("## 📈 Detailed Analysis")
-        
-        top_stocks = st.session_state['screened_stocks']
-        
-        # Stock selector for detailed analysis
-        selected_symbol = st.selectbox(
-            "Select Stock for Detailed Analysis",
-            options=top_stocks['symbol'].tolist(),
-            format_func=lambda x: f"{x.replace('.NS', '')} - {top_stocks[top_stocks['symbol']==x]['pct_change_from_open'].iloc[0]:.2f}%"
-        )
-        
-        if selected_symbol:
-            stock_data = top_stocks[top_stocks['symbol'] == selected_symbol].iloc[0]
-            create_detailed_stock_analysis(stock_data)
+    # Show cached data info
+    if st.sidebar.checkbox("Show Cache Info", value=False):
+        st.sidebar.subheader("📁 Cache Information")
+        cache_dir = os.path.join(os.path.dirname(__file__), 'data', 'cache')
+        if os.path.exists(cache_dir):
+            cache_files = os.listdir(cache_dir)
+            st.sidebar.write(f"Cache files: {len(cache_files)}")
+            for file in cache_files[:5]:  # Show first 5 files
+                st.sidebar.write(f"• {file}")
+            if len(cache_files) > 5:
+                st.sidebar.write(f"... and {len(cache_files) - 5} more")
+        else:
+            st.sidebar.write("No cache directory found")
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; color: #666; font-size: 0.8em;'>
+    🔍 Advanced Stock Screener | Built for Live Trading | Data from Zerodha Kite API
+    </div>
+    """, unsafe_allow_html=True)
 
 def create_screening_visualization(top_stocks: pd.DataFrame):
     """Create visualization for screening results."""
